@@ -1,3 +1,4 @@
+#include <setjmp.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -8,6 +9,8 @@
 #define SHLITE_RL_BUFSIZE 1024
 #define SHLITE_TOK_BUFSIZE 64
 #define SHLITE_TOK_DELIM " \t\r\n\a"
+
+static jmp_buf buf;
 
 int shlite_cd(char **args);
 int shlite_help(char **args);
@@ -92,7 +95,9 @@ char *shlite_readline() {
     }
     while (1) {
         int c = getchar();
-        if (c == '\n' || c == EOF) {
+        if (c == EOF) {
+            longjmp(buf, 1);
+        } else if (c == '\n') {
             buffer[position] = '\0';
             return buffer;
         } else {
@@ -147,23 +152,25 @@ void shlite_loop(void) {
     char **args;
     int status;
 
-    do {
-        printf("shlite> ");
-        line = shlite_readline();
-        // Ctrl + D handler
-        if (line[0] == '\0')
-            continue;
-        args = shlite_split_line(line);
-        status = shlite_execute(args);
+    if (setjmp(buf) == 0) {
+        do {
+            printf("shlite> ");
+            line = shlite_readline();
+            args = shlite_split_line(line);
+            status = shlite_execute(args);
 
-        free(line);
-        free(args);
+            free(line);
+            free(args);
 
-    } while (status);
+        } while (status);
+    } else {
+        return;
+    }
 }
 
 int main(int argc, char **argv) {
 
     shlite_loop();
+
     return EXIT_SUCCESS;
 }
