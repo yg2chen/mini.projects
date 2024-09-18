@@ -1,11 +1,11 @@
 CC := gcc
-ELF := shlite
 SRC_DIR := .
 BUILD_DIR := ./build
 SRCS := $(wildcard $(SRC_DIR)/*.c)
 OBJS += $(addprefix $(BUILD_DIR)/, $(patsubst %.c, %.o, $(notdir $(wildcard $(SRC_DIR)/*.c))))
+ELF := $(BUILD_DIR)/shlite
 
-all: check_dir build
+all: check_dir clean build
 	@echo 'build completed!'
 
 check_dir:
@@ -20,6 +20,9 @@ build: $(OBJS)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c
 	$(CC) -c $^ -o $@
+
+run: 
+	@$(ELF)
 
 .PHONY: clean
 clean:
