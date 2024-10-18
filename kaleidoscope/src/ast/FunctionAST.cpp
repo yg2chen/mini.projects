@@ -1,11 +1,11 @@
 #include "FunctionAST.h"
+#include "kaleidoscope.h"
 #include <llvm/IR/BasicBlock.h>
 
 llvm::Function *FunctionAST::codegen() {
-    llvm::Function *TheFunction = TheModule->getFunction(Proto->getName());
-
-    if (!TheFunction)
-        TheFunction = Proto->codegen();
+    auto &P = *Proto;
+    FunctionProtos[Proto->getName()] = std::move(Proto);
+    llvm::Function *TheFunction = getFunction(P.getName());
 
     if (!TheFunction)
         return nullptr;
@@ -26,6 +26,8 @@ llvm::Function *FunctionAST::codegen() {
 
         // Validate the generated code, checking for consistency.
         verifyFunction(*TheFunction);
+        // optimizations
+        TheFPM->run(*TheFunction, *TheFAM);
 
         return TheFunction;
     }

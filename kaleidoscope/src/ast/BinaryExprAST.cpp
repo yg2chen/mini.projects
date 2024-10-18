@@ -1,6 +1,5 @@
 
 #include "BinaryExprAST.h"
-#include "kaleidoscope.h"
 
 llvm::Value *BinaryExprAST::codegen() {
     llvm::Value *L = LHS->codegen();
