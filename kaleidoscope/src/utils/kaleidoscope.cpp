@@ -1,6 +1,7 @@
 #include "kaleidoscope.h"
 
 // This is an object that owns LLVM core data structures
+// storing type and constant value tables
 std::unique_ptr<llvm::LLVMContext> TheContext;
 
 // This is a helper object that makes easy to generate LLVM instructions

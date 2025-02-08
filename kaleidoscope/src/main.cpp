@@ -104,7 +104,6 @@ static void HandleTopLevelExpression() {
 
             // Delete the anonymous expression module from the JIT.
             EOE(RT->remove());
-            /*FnIR->eraseFromParent();*/
         }
     } else {
         getNextToken();

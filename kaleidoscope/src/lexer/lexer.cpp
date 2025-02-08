@@ -25,6 +25,17 @@ int gettok() {
             return tok_def;
         if (IdentifierString == "extern")
             return tok_extern;
+        if (IdentifierString == "if")
+            return tok_if;
+        if (IdentifierString == "then")
+            return tok_then;
+        if (IdentifierString == "else")
+            return tok_else;
+        if (IdentifierString == "for")
+            return tok_for;
+        if (IdentifierString == "in")
+            return tok_in;
+
         return tok_identifier;
     }
 
