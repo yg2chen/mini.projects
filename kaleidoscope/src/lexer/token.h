@@ -15,4 +15,8 @@ enum Token {
     // for loop block
     tok_for = -9,
     tok_in = -10,
+
+    // binary
+    tok_binary = -11,
+    tok_unary = -12,
 };

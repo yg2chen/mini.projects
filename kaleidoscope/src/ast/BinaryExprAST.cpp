@@ -20,6 +20,12 @@ llvm::Value *BinaryExprAST::codegen() {
         return Builder->CreateUIToFP(L, llvm::Type::getDoubleTy(*TheContext),
                                      "booltmp");
     default:
-        return LogErrorV("invalid binary operator");
+        break;
     }
+
+    llvm::Function *F = getFunction(std::string("binary") + Op);
+    assert(F && "binary operation not found");
+
+    llvm::Value *Ops[2] = {L, R};
+    return Builder->CreateCall(F, Ops, "binop");
 }

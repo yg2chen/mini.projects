@@ -1,5 +1,6 @@
 #include "FunctionAST.h"
 #include "kaleidoscope.h"
+#include "parser.h"
 #include <llvm/IR/BasicBlock.h>
 
 llvm::Function *FunctionAST::codegen() {
@@ -9,6 +10,11 @@ llvm::Function *FunctionAST::codegen() {
 
     if (!TheFunction)
         return nullptr;
+
+    // if this is an operator
+    if (P.isBinaryOp()) {
+        BinopPrecedence[P.getOperatorName()] = P.getBinaryPrecedence();
+    }
 
     // Create a new basic block to start insertion into.
     llvm::BasicBlock *BB =

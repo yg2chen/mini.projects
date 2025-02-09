@@ -7,6 +7,7 @@
 #include "IfExprAST.h"
 #include "NumberExprAST.h"
 #include "PrototypeAST.h"
+#include "UnaryExprAST.h"
 #include "VariableExprAST.h"
 #include "lexer.h"
 #include "logger.h"
@@ -28,3 +29,5 @@ std::unique_ptr<FunctionAST> ParseTopLevelExpr();
 std::unique_ptr<PrototypeAST> ParseExtern();
 std::unique_ptr<ExprAST> ParseIfExpr();
 std::unique_ptr<ExprAST> ParseForExpr();
+std::unique_ptr<ExprAST> ParseBinOpRHS();
+std::unique_ptr<ExprAST> ParseUnary();
