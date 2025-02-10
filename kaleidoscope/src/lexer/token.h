@@ -19,4 +19,7 @@ enum Token {
     // binary
     tok_binary = -11,
     tok_unary = -12,
+
+    // var
+    tok_var = -13,
 };

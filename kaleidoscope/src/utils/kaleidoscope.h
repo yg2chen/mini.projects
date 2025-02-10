@@ -40,7 +40,7 @@ extern std::unique_ptr<llvm::IRBuilder<>> Builder;
 extern std::unique_ptr<llvm::Module> TheModule;
 
 // This map keeps track of which values are defined in the current scope
-extern std::map<std::string, llvm::Value *> NamedValues;
+extern std::map<std::string, llvm::AllocaInst *> NamedValues;
 
 // LLVM Optimizations
 extern std::unique_ptr<llvm::FunctionPassManager> TheFPM;
@@ -56,3 +56,5 @@ extern llvm::PassBuilder PB;
 extern llvm::ExitOnError EOE;
 
 llvm::Function *getFunction(std::string Name);
+llvm::AllocaInst *CreateEntryBlockAlloc(llvm::Function *TheFunction,
+                                        llvm::StringRef VarName);

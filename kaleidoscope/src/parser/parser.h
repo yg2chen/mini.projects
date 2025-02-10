@@ -8,6 +8,7 @@
 #include "NumberExprAST.h"
 #include "PrototypeAST.h"
 #include "UnaryExprAST.h"
+#include "VarExprAST.h"
 #include "VariableExprAST.h"
 #include "lexer.h"
 #include "logger.h"
@@ -31,3 +32,4 @@ std::unique_ptr<ExprAST> ParseIfExpr();
 std::unique_ptr<ExprAST> ParseForExpr();
 std::unique_ptr<ExprAST> ParseBinOpRHS();
 std::unique_ptr<ExprAST> ParseUnary();
+std::unique_ptr<ExprAST> ParseVar();

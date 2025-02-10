@@ -1,4 +1,6 @@
 #include "kaleidoscope.h"
+#include "llvm/ADT/StringRef.h"
+#include "llvm/IR/Instructions.h"
 
 // This is an object that owns LLVM core data structures
 // storing type and constant value tables
@@ -11,7 +13,7 @@ std::unique_ptr<llvm::IRBuilder<>> Builder;
 std::unique_ptr<llvm::Module> TheModule;
 
 // This map keeps track of which values are defined in the current scope
-std::map<std::string, llvm::Value *> NamedValues;
+std::map<std::string, llvm::AllocaInst *> NamedValues;
 
 std::unique_ptr<llvm::FunctionPassManager> TheFPM;
 std::unique_ptr<llvm::LoopAnalysisManager> TheLAM;
@@ -35,4 +37,14 @@ llvm::Function *getFunction(std::string Name) {
         return FI->second->codegen();
 
     return nullptr;
+}
+
+// create an alloca inst. in the entry block of the function
+// this is used for mutable variables etc.
+llvm::AllocaInst *CreateEntryBlockAlloc(llvm::Function *TheFunction,
+                                        llvm::StringRef VarName) {
+    llvm::IRBuilder<> TmpB(&TheFunction->getEntryBlock(),
+                           TheFunction->getEntryBlock().begin());
+    return TmpB.CreateAlloca(llvm::Type::getDoubleTy(*TheContext), nullptr,
+                             VarName);
 }

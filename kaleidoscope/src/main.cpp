@@ -7,6 +7,7 @@
 #include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
 #include "llvm/Support/Error.h"
 #include "llvm/Support/TargetSelect.h"
+#include "llvm/Transforms/Utils/Mem2Reg.h"
 #include <cstdio>
 #include <memory>
 
@@ -28,6 +29,8 @@ static void InitializeModuleAndPassManagers(void) {
                                                        /* DebugLogging */ true);
     TheSI->registerCallbacks(*ThePIC, TheMAM.get());
 
+    /* promote allocas to registers, mem2reg*/
+    TheFPM->addPass(PromotePass());
     /* "peephole" optimizations and bit-twiddling optimizations*/
     TheFPM->addPass(InstCombinePass());
     /* Reassociate expressions*/
@@ -155,6 +158,7 @@ int main() {
     InitializeNativeTargetAsmPrinter();
     InitializeNativeTargetAsmPrinter();
 
+    BinopPrecedence['='] = 2;
     BinopPrecedence['<'] = 10;
     BinopPrecedence['+'] = 20;
     BinopPrecedence['-'] = 20;

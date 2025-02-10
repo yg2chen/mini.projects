@@ -23,8 +23,16 @@ llvm::Function *FunctionAST::codegen() {
 
     // Record the function arguments in the NamedValues map.
     NamedValues.clear();
-    for (auto &Arg : TheFunction->args())
-        NamedValues[std::string(Arg.getName())] = &Arg;
+    for (auto &Arg : TheFunction->args()) {
+        // create alloca for this arg
+        llvm::AllocaInst *Alloca =
+            CreateEntryBlockAlloc(TheFunction, Arg.getName());
+
+        // store the init value into the alloca
+        Builder->CreateStore(&Arg, Alloca);
+
+        NamedValues[std::string(Arg.getName())] = Alloca;
+    }
 
     if (llvm::Value *RetVal = Body->codegen()) {
         // Finish off the function.

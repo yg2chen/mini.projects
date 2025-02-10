@@ -7,16 +7,41 @@
 #include "llvm/IR/Instructions.h"
 #include "llvm/IR/Value.h"
 
+// Output for-loop as:
+//   var = alloca double
+//   ...
+//   start = startexpr
+//   store start -> var
+//   goto loop
+// loop:
+//   ...
+//   bodyexpr
+//   ...
+// loopend:
+//   step = stepexpr
+//   endcond = endexpr
+//
+//   curvar = load var
+//   nextvar = curvar + step
+//   store nextvar -> var
+//   br endcond, loop, endloop
+// outloop:
 llvm::Value *ForExprAST::codegen() {
+    llvm::Function *TheFunction = Builder->GetInsertBlock()->getParent();
+
+    // create an alloca
+    llvm::AllocaInst *Alloca = CreateEntryBlockAlloc(TheFunction, VarName);
+
     // Emit the start code first, without 'variable' in scope.
     llvm::Value *StartVal = Start->codegen();
     if (!StartVal)
         return nullptr;
 
+    // store the value into the alloca
+    Builder->CreateStore(StartVal, Alloca);
+
     // Make the new basic block for the loop header, inserting after current
     // block.
-    llvm::Function *TheFunction = Builder->GetInsertBlock()->getParent();
-    llvm::BasicBlock *PreheaderBB = Builder->GetInsertBlock();
     llvm::BasicBlock *LoopBB =
         llvm::BasicBlock::Create(*TheContext, "loop", TheFunction);
 
@@ -26,15 +51,10 @@ llvm::Value *ForExprAST::codegen() {
     // Start insertion in LoopBB.
     Builder->SetInsertPoint(LoopBB);
 
-    // Start the PHI node with an entry for Start.
-    llvm::PHINode *Variable =
-        Builder->CreatePHI(llvm::Type::getDoubleTy(*TheContext), 2, VarName);
-    Variable->addIncoming(StartVal, PreheaderBB);
-
     // Within the loop, the variable is defined equal to the PHI node.  If it
     // shadows an existing variable, we have to restore it, so save it now.
-    llvm::Value *OldVal = NamedValues[VarName];
-    NamedValues[VarName] = Variable;
+    llvm::AllocaInst *OldVal = NamedValues[VarName];
+    NamedValues[VarName] = Alloca;
 
     // Emit the body of the loop.  This, like any other expr, can change the
     // current BB.  Note that we ignore the value computed by the body, but
@@ -53,12 +73,16 @@ llvm::Value *ForExprAST::codegen() {
         StepVal = llvm::ConstantFP::get(*TheContext, llvm::APFloat(1.0));
     }
 
-    llvm::Value *NextVar = Builder->CreateFAdd(Variable, StepVal, "nextvar");
-
     // Compute the end condition.
     llvm::Value *EndCond = End->codegen();
     if (!EndCond)
         return nullptr;
+
+    // reload, inc., and restore the alloc.
+    llvm::Value *CurVal = Builder->CreateLoad(
+        llvm::Type::getDoubleTy(*TheContext), Alloca, VarName.c_str());
+    llvm::Value *NextVal = Builder->CreateFAdd(CurVal, StepVal, "nextvar");
+    Builder->CreateStore(NextVal, Alloca);
 
     // Convert condition to a bool by comparing non-equal to 0.0.
     EndCond = Builder->CreateFCmpONE(
@@ -66,7 +90,6 @@ llvm::Value *ForExprAST::codegen() {
         "loopcond");
 
     // Create the "after loop" block and insert it.
-    llvm::BasicBlock *LoopEndBB = Builder->GetInsertBlock();
     llvm::BasicBlock *AfterBB =
         llvm::BasicBlock::Create(*TheContext, "afterloop", TheFunction);
 
@@ -75,9 +98,6 @@ llvm::Value *ForExprAST::codegen() {
 
     // Any new code will be inserted in AfterBB.
     Builder->SetInsertPoint(AfterBB);
-
-    // Add a new entry to the PHI node for the backedge.
-    Variable->addIncoming(NextVar, LoopEndBB);
 
     // Restore the unshadowed variable.
     if (OldVal)

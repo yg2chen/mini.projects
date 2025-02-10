@@ -1,8 +1,9 @@
 #include "VariableExprAST.h"
 
 llvm::Value *VariableExprAST::codegen() {
-    llvm::Value *V = NamedValues[Name];
+    llvm::AllocaInst *V = NamedValues[Name];
     if (!V)
         LogErrorV("Unknown variable name");
-    return V;
+    // load the value
+    return Builder->CreateLoad(V->getAllocatedType(), V, Name.c_str());
 }
