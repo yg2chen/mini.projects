@@ -1,12 +1,17 @@
 #include "ast/FunctionAST.h"
 #include "ast/PrototypeAST.h"
-#include "kaleidoscope_jit.h"
+#include "kaleidoscopejit/kaleidoscopejit.h"
 #include "lexer/lexer.h"
+#include "lexer/token.h"
 #include "parser/parser.h"
 #include "utils/kaleidoscope.h"
 #include "llvm/ExecutionEngine/Orc/ThreadSafeModule.h"
+#include "llvm/IR/LegacyPassManager.h"
+#include "llvm/MC/TargetRegistry.h"
 #include "llvm/Support/Error.h"
+#include "llvm/Support/FileSystem.h"
 #include "llvm/Support/TargetSelect.h"
+#include "llvm/Target/TargetOptions.h"
 #include "llvm/Transforms/Utils/Mem2Reg.h"
 #include <cstdio>
 #include <memory>
@@ -153,11 +158,6 @@ extern "C" DLLEXPORT double printd(double X) {
 }
 
 int main() {
-
-    InitializeNativeTarget();
-    InitializeNativeTargetAsmPrinter();
-    InitializeNativeTargetAsmPrinter();
-
     BinopPrecedence['='] = 2;
     BinopPrecedence['<'] = 10;
     BinopPrecedence['+'] = 20;
@@ -171,6 +171,53 @@ int main() {
     InitializeModuleAndPassManagers();
     MainLoop();
     TheModule->print(errs(), nullptr);
+
+    auto TargetTriple = LLVMGetDefaultTargetTriple();
+
+    InitializeAllTargetInfos();
+    InitializeAllTargets();
+    InitializeAllTargetMCs();
+    InitializeAllAsmParsers();
+    InitializeAllAsmPrinters();
+
+    std::string Error;
+    auto Target = TargetRegistry::lookupTarget(TargetTriple, Error);
+    if (!Target) {
+        errs() << Error;
+        return 1;
+    }
+
+    auto CPU = "generic";
+    auto Features = "";
+
+    TargetOptions opt;
+
+    auto TargetMachine = Target->createTargetMachine(
+        TargetTriple, CPU, Features, opt, Reloc::PIC_);
+
+    TheModule->setDataLayout(TargetMachine->createDataLayout());
+    TheModule->setTargetTriple(TargetTriple);
+
+    auto FileName = "output.o";
+    std::error_code EC;
+    raw_fd_ostream dest(FileName, EC, llvm::sys::fs::OF_None);
+
+    if (EC) {
+        errs() << "Couldnt open file : " << EC.message();
+        return 1;
+    }
+
+    llvm::legacy::PassManager pass;
+
+    auto FileType = CodeGenFileType::ObjectFile;
+
+    if (TargetMachine->addPassesToEmitFile(pass, dest, nullptr, FileType)) {
+        errs() << "TargetMachine cant emit a file of this type";
+        return 1;
+    }
+
+    pass.run(*TheModule);
+    dest.flush();
 
     return 0;
 }

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "PrototypeAST.h"
-#include "kaleidoscope_jit.h"
+#include "kaleidoscopejit.h"
 #include "llvm/ADT/APFloat.h"
 #include "llvm/ADT/STLExtras.h"
 #include "llvm/Analysis/CGSCCPassManager.h"
